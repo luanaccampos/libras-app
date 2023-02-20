@@ -1,5 +1,8 @@
 package com.example.libras
 
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
 import android.graphics.BitmapFactory
 import androidx.annotation.NonNull
 
@@ -14,10 +17,16 @@ import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+import java.nio.FloatBuffer
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "teste"
     private var handLandmarker: HandLandmarker? = null
+
+    private fun createORTSession( ortEnvironment: OrtEnvironment) : OrtSession {
+        val modelBytes = resources.openRawResource( R.raw.alphabet_model).readBytes()
+        return ortEnvironment.createSession( modelBytes )
+    }
 
     fun setup()
     {
@@ -38,6 +47,21 @@ class MainActivity: FlutterActivity() {
         handLandmarker = HandLandmarker.createFromOptions(context, options);
     }
 
+    private fun runPrediction( input : List<Float> , ortSession: OrtSession , ortEnvironment: OrtEnvironment ) : Long {
+        // Get the name of the input node
+        val inputName = ortSession.inputNames?.iterator()?.next()
+        // Make a FloatBuffer of the inputs
+        val floatBufferInputs = FloatBuffer.wrap( input.toFloatArray())
+        // Create input tensor with floatBufferInputs of shape ( 1 , 63 )
+        val inputTensor = OnnxTensor.createTensor( ortEnvironment , floatBufferInputs , longArrayOf( 1, 63) )
+        // Run the model
+        val results = ortSession.run( mapOf( inputName to inputTensor ) )
+        // Fetch and return the results
+
+        val x = results[0].value as LongArray
+        return x[0]
+    }
+
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -56,7 +80,11 @@ class MainActivity: FlutterActivity() {
                 for(landmark in worldLand?.get(0)!!)
                     list.addAll(arrayOf(landmark.x(), landmark.y(), landmark.z()))
 
-                result.success(list)
+                val ortEnvironment = OrtEnvironment.getEnvironment()
+                val ortSession = createORTSession( ortEnvironment )
+                val pred = runPrediction(list, ortSession , ortEnvironment )
+
+                result.success(pred)
             }
             else
                 result.notImplemented();
