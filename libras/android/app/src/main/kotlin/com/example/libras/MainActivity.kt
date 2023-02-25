@@ -11,12 +11,11 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
-import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+
 import java.nio.FloatBuffer
 
 class MainActivity: FlutterActivity() {
@@ -28,7 +27,7 @@ class MainActivity: FlutterActivity() {
         return ortEnvironment.createSession( modelBytes )
     }
 
-    fun setup()
+    private fun setup()
     {
         val baseOptionsBuilder = BaseOptions.builder().setModelAssetPath("hand_landmarker.task")
         val baseOptions = baseOptionsBuilder.build()
@@ -44,7 +43,7 @@ class MainActivity: FlutterActivity() {
 
         val options = optionsBuilder.build()
 
-        handLandmarker = HandLandmarker.createFromOptions(context, options);
+        handLandmarker = HandLandmarker.createFromOptions(context, options)
     }
 
     private fun runPrediction( input : List<Float> , ortSession: OrtSession , ortEnvironment: OrtEnvironment ) : Long {
@@ -69,11 +68,11 @@ class MainActivity: FlutterActivity() {
                 call, result ->
             if(call.method == "model")
             {
-                setup();
+                setup()
                 val image = BitmapFactory.decodeFile(call.arguments as String)
                 val mpImage = BitmapImageBuilder(image).build()
                 val r = handLandmarker?.detect(mpImage)
-                val worldLand = r?.worldLandmarks();
+                val worldLand = r?.worldLandmarks()
 
                 val list: MutableList<Float> = ArrayList()
 
@@ -87,7 +86,7 @@ class MainActivity: FlutterActivity() {
                 result.success(pred)
             }
             else
-                result.notImplemented();
+                result.notImplemented()
         }
     }
 }
